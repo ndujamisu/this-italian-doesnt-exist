@@ -1,3 +1,4 @@
+import progressBar from './progress-bar.js'
 import { AsyncResource } from 'async_hooks'
 import { EventEmitter } from 'events'
 import { Worker } from 'worker_threads'
@@ -19,7 +20,7 @@ class WorkerPoolTaskInfo extends AsyncResource {
 }
 
 class WorkerPool extends EventEmitter {
-	constructor(workerFile) {
+	constructor(workerFile, chunks) {
 		super()
 		this.maxThreads = os.cpus().length
 		this.workerFile = workerFile
@@ -29,6 +30,7 @@ class WorkerPool extends EventEmitter {
 		
 		for(let i=0; i < this.maxThreads; i++)
 			this.newWorker()
+		progressBar.init(chunks)
 		
 		this.on(kWorkerFreedEvent, () => {
 			if(this.tasks.length > 0) {
@@ -41,6 +43,7 @@ class WorkerPool extends EventEmitter {
 	newWorker() {
 		const worker = new Worker(this.workerFile)
 		worker.on('message', (res) => {
+			progressBar.update()
 			worker[kTaskInfo].done(null, res)
 			worker[kTaskInfo] = null
 			this.freeWorkers.push(worker)
