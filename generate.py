@@ -65,9 +65,9 @@ def runScraper(filename):
     p.wait()
 
 
-runScraper("nomi")
-runScraper("cognomi")
-runScraper("comuni")
+runScraper("main-nomi")
+runScraper("main-cognomi")
+runScraper("main-comuni")
 
 person = {}
 
