@@ -1,40 +1,19 @@
-import progressBar from './progress-bar.js'
-import fetch from 'node-fetch'
+import WorkerPool from './worker-pool.js'
+import fetch from './fetch.js'
 import cheerio from 'cheerio'
 import fs from 'fs'
 
 const filePath = 'data/nomi.json'
- 
-const html = (URL) => {
-	return fetch(URL)
-			.then((resp) => resp.arrayBuffer())
-			.then((data) => {
-				return new TextDecoder('utf-8').decode(data)
-			})
-}
-
-const data = (table) => {
-	const data = []
-	table.children[1].children[0].children
-	.forEach((row) => {
-		row.children.forEach((col) => {
-			const tag = col.children[0]
-			if(tag.name === "strong")
-				data.push(tag.children[0].children[0].data)
-		})
-	})
-	return data
-}
+const prefix  = "https://www.nomix.it/nomi-italiani-"
+const suffix  = ".php"
+const infixes = ["maschili-e-femminili"]
+const results = { "M": [], "F": [] }
+const tasks = []
 
 if( ! fs.existsSync(filePath)) {
 	console.log("Scraping 'nomi' avviato...")
 	
-	const prefix  = "https://www.nomix.it/nomi-italiani-"
-	const suffix  = ".php"
-	const infixes = ["maschili-e-femminili"]
-	const results = { "M": [], "F": [] }
-	
-	let $ = cheerio.load(await html(prefix+infixes[0]+suffix))
+	const $ = cheerio.load(await fetch.html(prefix+infixes[0]+suffix), 'utf-8')
 	
 	$("h2")[0].children
 	.filter((el) => el.name === "a")
@@ -42,18 +21,28 @@ if( ! fs.existsSync(filePath)) {
 		infixes.push("lettera-"+lett.children[0].data.trim())
 	})
 	
-	progressBar.init(infixes.length)
-	
-	for(const infix of infixes) {
-		$ = cheerio.load(await html(prefix+infix+suffix))
-		const tables = $(".pure-u-1.pure-u-md-1-2")
-		
-		results["M"] = results["M"].concat(data(tables[0]))
-		results["F"] = results["F"].concat(data(tables[1]))
-		
-		progressBar.update()
+	const pool = new WorkerPool('./scraping/worker-nomi.js', infixes.length)
+
+	for(let i=0; i<infixes.length; i++) {
+		tasks.push(new Promise((resolve, reject) => {
+			let taskUrl = prefix+infixes[i]+suffix
+			pool.runTask({ taskUrl }, (err, res) => {
+				if(err)	return reject(err)
+				results[i] = res
+				return resolve(res)
+			})
+		}))
 	}
 	
-	fs.writeFile(filePath, JSON.stringify(results), () => {})
-}
-console.log("Scraping 'nomi' completato (disponibile qui: '"+filePath+"')")
+	Promise.all(tasks).then(() => {
+		const genders = ["M", "F"]
+		const keys = Object.keys(results).filter(x => ! genders.includes(x))
+		for(const key of keys) {
+			for(const gender of genders)
+				results[gender] = results[gender].concat(results[key][gender])
+			delete results[key]
+		}
+		fs.writeFile(filePath, JSON.stringify(results), () => {})
+		console.log("Scraping 'nomi' completato (disponibile qui: '"+filePath+"')")
+	})
+} else console.log("Scraping 'nomi' completato (disponibile qui: '"+filePath+"')")
