@@ -29,8 +29,7 @@ const scrape = async (url, suffix) => {
 				$ = cheerio.load(await fetch.html(url+val.attribs.href, 'ISO-8859-1'))
 				key = $("td.ival")[3].children[0].children[0].data
 			}
-			
-			results.push(key+":"+val.children[0].data)
+			results.push(key+':'+val.children[0].data)
 		}
 	}
 	return results

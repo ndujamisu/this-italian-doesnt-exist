@@ -34,8 +34,7 @@ if( ! fs.existsSync(filePath)) {
 	}
 	
 	Promise.all(tasks).then(() => {
-		[].concat.apply([], results)
-		fs.writeFile(filePath, JSON.stringify(results[0]), () => {})
+		fs.writeFile(filePath, JSON.stringify(results.flat()), () => {})
 		console.log("Scraping 'cognomi' completato (disponibile qui: '"+filePath+"')")
 	})
 } else console.log("Scraping 'cognomi' completato (disponibile qui: '"+filePath+"')")
