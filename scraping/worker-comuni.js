@@ -1,17 +1,18 @@
 import { parentPort } from 'worker_threads'
-import fetch from './fetch.js'
+import Fetcher from './fetch.js'
 import cheerio from 'cheerio'
 
 parentPort.on('message', (task) => {
-	scrape(task.url, task.suffix).then((res) => {
+	scrape(task.encoding, task.url, task.suffix).then((res) => {
 		parentPort.postMessage(res)
 	})
 })
 
-const scrape = async (url, suffix) => {
+const scrape = async (encoding, url, suffix) => {
 	const results = []
-	let $ = cheerio.load(await fetch.html(url+suffix, 'ISO-8859-1'))
+	const fetch = new Fetcher(encoding)
 	
+	let $ = cheerio.load(await fetch.html(url+suffix))
 	const rows = $("table.tabwrap")[0]
 			.children[1].children
 			.filter((el) => el.name === "tr")
@@ -26,7 +27,7 @@ const scrape = async (url, suffix) => {
 			const val = cols[j*2+1].children[0].children[0]
 
 			if(key.includes("x")) {
-				$ = cheerio.load(await fetch.html(url+val.attribs.href, 'ISO-8859-1'))
+				$ = cheerio.load(await fetch.html(url+val.attribs.href))
 				key = $("td.ival")[3].children[0].children[0].data
 			}
 			results.push(key+':'+val.children[0].data)

@@ -1,16 +1,18 @@
 import { parentPort } from 'worker_threads'
-import fetch from './fetch.js'
+import Fetcher from './fetch.js'
 import cheerio from 'cheerio'
 
 parentPort.on('message', (task) => {
-	scrape(task.taskUrl).then((res) => {
+	scrape(task.encoding, task.taskUrl).then((res) => {
 		parentPort.postMessage(res)
 	})
 })
 
-const scrape = async (url) => {
+const scrape = async (encoding, url) => {
 	const results = { "M": [], "F": [] }
-	const $ = cheerio.load(await fetch.html(url, 'utf-8'))
+	const fetch = new Fetcher(encoding)
+	
+	const $ = cheerio.load(await fetch.html(url))
 	const tables = $(".pure-u-1.pure-u-md-1-2")
 	
 	const genders = ["M", "F"]

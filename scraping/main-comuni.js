@@ -1,8 +1,9 @@
 import WorkerPool from './worker-pool.js'
-import fetch from './fetch.js'
+import Fetcher from './fetch.js'
 import cheerio from 'cheerio'
 import fs from 'fs'
 
+const encoding = 'ISO-8859-1'
 const filePath = 'data/comuni.json'
 const url = "http://www.comuni-italiani.it/cap/"
 const suffixes = []
@@ -11,8 +12,9 @@ const tasks = []
 
 if( ! fs.existsSync(filePath)) {
 	console.log("Scraping 'comuni' avviato...")
-
-	let $ = cheerio.load(await fetch.html(url, 'ISO-8859-1'))
+	
+	const fetch = new Fetcher(encoding)
+	let $ = cheerio.load(await fetch.html(url))
 	
 	const rows = $("table.tabwrap")[0]
 			.children[1].children
@@ -33,7 +35,7 @@ if( ! fs.existsSync(filePath)) {
 	for(let i=0; i<suffixes.length; i++) {
 		tasks.push(new Promise((resolve, reject) => {
 			const suffix = suffixes[i]
-			pool.runTask({ url, suffix }, (err, res) => {
+			pool.runTask({ encoding, url, suffix }, (err, res) => {
 				if(err)	return reject(err)
 				results[i] = res
 				return resolve(res)

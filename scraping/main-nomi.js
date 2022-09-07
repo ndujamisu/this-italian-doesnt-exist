@@ -1,8 +1,9 @@
 import WorkerPool from './worker-pool.js'
-import fetch from './fetch.js'
+import Fetcher from './fetch.js'
 import cheerio from 'cheerio'
 import fs from 'fs'
 
+const encoding = 'utf-8'
 const filePath = 'data/nomi.json'
 const prefix  = "https://www.nomix.it/nomi-italiani-"
 const suffix  = ".php"
@@ -13,7 +14,8 @@ const tasks = []
 if( ! fs.existsSync(filePath)) {
 	console.log("Scraping 'nomi' avviato...")
 	
-	const $ = cheerio.load(await fetch.html(prefix+infixes[0]+suffix), 'utf-8')
+	const fetch = new Fetcher(encoding)
+	const $ = cheerio.load(await fetch.html(prefix+infixes[0]+suffix))
 	
 	$("h2")[0].children
 	.filter((el) => el.name === "a")
@@ -26,7 +28,7 @@ if( ! fs.existsSync(filePath)) {
 	for(let i=0; i<infixes.length; i++) {
 		tasks.push(new Promise((resolve, reject) => {
 			let taskUrl = prefix+infixes[i]+suffix
-			pool.runTask({ taskUrl }, (err, res) => {
+			pool.runTask({ encoding, taskUrl }, (err, res) => {
 				if(err)	return reject(err)
 				results[i] = res
 				return resolve(res)

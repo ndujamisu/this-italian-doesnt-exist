@@ -1,11 +1,17 @@
 import fetch from 'node-fetch'
 
-export default {
-	html: async function(URL, encoding) {
+class Fetcher {
+	constructor(encoding) {
+		this.encoding = encoding
+	}
+	
+	async html(URL) {
 		return fetch(URL)
 			.then((resp) => resp.arrayBuffer())
 			.then((data) => {
-				return new TextDecoder(encoding).decode(data)
+				return new TextDecoder(this.encoding).decode(data)
 			})
 	}
 }
+
+export default Fetcher
